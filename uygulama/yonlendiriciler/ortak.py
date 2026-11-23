@@ -1,12 +1,18 @@
 from functools import wraps
-from flask import jsonify, session
+from flask import g, jsonify, request
+from veri.onbellek import oturum_getir
 
 
 def giris_gerekli(fonksiyon):
     @wraps(fonksiyon)
     def sarmalayici(*args, **kwargs):
-        if "kullanici_id" not in session:
+        token = request.cookies.get("oturum_token")
+        oturum = oturum_getir(token)
+        if not oturum:
             return jsonify({"hata": "Oturum açmanız gerekiyor."}), 401
+        g.kullanici_id = oturum["kullanici_id"]
+        g.rol = oturum["rol"]
+        g.oturum_token = token
         return fonksiyon(*args, **kwargs)
 
     return sarmalayici
@@ -15,10 +21,15 @@ def giris_gerekli(fonksiyon):
 def yonetici_gerekli(fonksiyon):
     @wraps(fonksiyon)
     def sarmalayici(*args, **kwargs):
-        if "kullanici_id" not in session:
+        token = request.cookies.get("oturum_token")
+        oturum = oturum_getir(token)
+        if not oturum:
             return jsonify({"hata": "Oturum açmanız gerekiyor."}), 401
-        if session.get("rol") != "yonetici":
+        if oturum.get("rol") != "yonetici":
             return jsonify({"hata": "Bu işlem için yönetici yetkisi gerekir."}), 403
+        g.kullanici_id = oturum["kullanici_id"]
+        g.rol = oturum["rol"]
+        g.oturum_token = token
         return fonksiyon(*args, **kwargs)
 
     return sarmalayici

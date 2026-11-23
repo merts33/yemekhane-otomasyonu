@@ -1,3 +1,8 @@
+from veri.onbellek import (
+    menu_anahtari,
+    menu_onbellege_yaz,
+    menu_onbellekten_getir,
+)
 from veri.veritabani import okuma_baglantisi
 
 
@@ -44,6 +49,12 @@ def yemekleri_getir():
 
 
 def gunun_menusu_getir(yemekhane_id, ogun_id, tarih):
+    anahtar = menu_anahtari(yemekhane_id, tarih, ogun_id)
+    onbellek = menu_onbellekten_getir(yemekhane_id, tarih, ogun_id)
+    if onbellek is not None:
+        print(f"MENU REDISTEN OKUNDU: {anahtar}", flush=True)
+        return onbellek
+
     baglanti = okuma_baglantisi()
     try:
         with baglanti.cursor() as imlec:
@@ -94,7 +105,7 @@ def gunun_menusu_getir(yemekhane_id, ogun_id, tarih):
                     }
                 )
 
-            return {
+            sonuc = {
                 "menu_id": menu_id,
                 "tarih": ilk["tarih"],
                 "yemekhane_id": ilk["yemekhane_id"],
@@ -117,6 +128,9 @@ def gunun_menusu_getir(yemekhane_id, ogun_id, tarih):
                 "toplam_kalori": toplam_kalori,
                 "yemekler": yemekler,
             }
+            print(f"MENU VERITABANINDAN OKUNDU: {anahtar}", flush=True)
+            menu_onbellege_yaz(yemekhane_id, tarih, ogun_id, sonuc)
+            return sonuc
     finally:
         baglanti.close()
 

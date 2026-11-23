@@ -1,6 +1,7 @@
 import bcrypt
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, g, jsonify, make_response, request
 from veri.kullanici_veri import eposta_ile_kullanici_bul, id_ile_kullanici_bul
+from veri.onbellek import oturum_olustur, oturum_sil
 from yonlendiriciler.ortak import giris_gerekli
 
 kimlik_bp = Blueprint("kimlik", __name__, url_prefix="/api")
@@ -28,38 +29,42 @@ def giris():
     if not dogru_mu:
         return jsonify({"hata": "E-posta veya şifre hatalı."}), 401
 
-    session.clear()
-    session["kullanici_id"] = kullanici["id"]
-    session["rol"] = kullanici["rol"]
-
-    return jsonify(
-        {
-            "kullanici": {
-                "id": kullanici["id"],
-                "ad": kullanici["ad"],
-                "soyad": kullanici["soyad"],
-                "eposta": kullanici["eposta"],
-                "rol": kullanici["rol"],
-                "ogrenci_no": kullanici["ogrenci_no"],
-                "bakiye": float(kullanici["bakiye"]),
+    token = oturum_olustur(kullanici["id"], kullanici["rol"])
+    yanit = make_response(
+        jsonify(
+            {
+                "kullanici": {
+                    "id": kullanici["id"],
+                    "ad": kullanici["ad"],
+                    "soyad": kullanici["soyad"],
+                    "eposta": kullanici["eposta"],
+                    "rol": kullanici["rol"],
+                    "ogrenci_no": kullanici["ogrenci_no"],
+                    "bakiye": float(kullanici["bakiye"]),
+                }
             }
-        }
+        )
     )
+    yanit.set_cookie("oturum_token", token, httponly=True, samesite="Lax")
+    return yanit
 
 
 @kimlik_bp.post("/cikis")
 def cikis():
-    session.clear()
-    return jsonify({"mesaj": "Çıkış yapıldı."})
+    token = request.cookies.get("oturum_token")
+    oturum_sil(token)
+    yanit = make_response(jsonify({"mesaj": "Çıkış yapıldı."}))
+    yanit.delete_cookie("oturum_token")
+    return yanit
 
 
 @kimlik_bp.get("/ben")
 @giris_gerekli
 def ben():
     kaynaktan = request.args.get("kaynaktan") == "1"
-    kullanici = id_ile_kullanici_bul(session["kullanici_id"], kaynaktan=kaynaktan)
+    kullanici = id_ile_kullanici_bul(g.kullanici_id, kaynaktan=kaynaktan)
     if not kullanici:
-        session.clear()
+        oturum_sil(g.oturum_token)
         return jsonify({"hata": "Kullanıcı bulunamadı."}), 401
     return jsonify(
         {

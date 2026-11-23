@@ -1,4 +1,5 @@
 import pymysql
+from veri.onbellek import menu_onbellegi_sil
 from veri.veritabani import IsKuraliHatasi, okuma_baglantisi, yazma_baglantisi
 
 
@@ -41,13 +42,18 @@ def menu_guncelle(menu_id, ogrenci_fiyati, personel_fiyati, yemek_idler):
         baglanti.begin()
         with baglanti.cursor() as imlec:
             imlec.execute(
+                "SELECT yemekhane_id, DATE_FORMAT(tarih, '%%Y-%%m-%%d') AS tarih, ogun_id "
+                "FROM menuler WHERE id = %s",
+                (menu_id,),
+            )
+            menu_bilgi = imlec.fetchone()
+            if not menu_bilgi:
+                raise IsKuraliHatasi("Güncellenecek menü bulunamadı.")
+
+            imlec.execute(
                 "UPDATE menuler SET ogrenci_fiyati = %s, personel_fiyati = %s WHERE id = %s",
                 (ogrenci_fiyati, personel_fiyati, menu_id),
             )
-            if imlec.rowcount == 0:
-                imlec.execute("SELECT id FROM menuler WHERE id = %s", (menu_id,))
-                if not imlec.fetchone():
-                    raise IsKuraliHatasi("Güncellenecek menü bulunamadı.")
             imlec.execute("DELETE FROM menu_yemekleri WHERE menu_id = %s", (menu_id,))
             for yemek_id in yemek_idler:
                 imlec.execute(
@@ -55,6 +61,9 @@ def menu_guncelle(menu_id, ogrenci_fiyati, personel_fiyati, yemek_idler):
                     (menu_id, yemek_id),
                 )
         baglanti.commit()
+        menu_onbellegi_sil(
+            menu_bilgi["yemekhane_id"], menu_bilgi["tarih"], menu_bilgi["ogun_id"]
+        )
     except pymysql.MySQLError as hata:
         baglanti.rollback()
         hata_kodu = hata.args[0] if hata.args else 0

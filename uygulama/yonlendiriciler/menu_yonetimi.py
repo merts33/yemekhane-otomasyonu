@@ -1,5 +1,5 @@
 from datetime import date, timedelta
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, g, jsonify, request
 from veri.menu_veri import (
     gunun_menusu_getir,
     haftalik_menuler_getir,
@@ -48,6 +48,6 @@ def haftalik_menuler():
     baslangic = request.args.get("baslangic") or bugun.isoformat()
     bitis = request.args.get("bitis") or (bugun + timedelta(days=6)).isoformat()
     menuler = haftalik_menuler_getir(
-        yemekhane_id, baslangic, bitis, session["kullanici_id"], session.get("rol")
+        yemekhane_id, baslangic, bitis, g.kullanici_id, g.rol
     )
     return jsonify({"menuler": menuler})

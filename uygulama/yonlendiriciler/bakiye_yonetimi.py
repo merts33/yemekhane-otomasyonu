@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, g, jsonify, request
 from veri.bakiye_veri import (
     bakiye_hareketleri_getir,
     bakiye_yukle,
@@ -12,7 +12,7 @@ bakiye_bp = Blueprint("bakiye", __name__, url_prefix="/api")
 @bakiye_bp.get("/bakiye")
 @giris_gerekli
 def bakiye_bilgisi():
-    kullanici_id = session["kullanici_id"]
+    kullanici_id = g.kullanici_id
     kaynaktan = request.args.get("kaynaktan") == "1"
     bakiye = guncel_bakiye_getir(kullanici_id, kaynaktan=kaynaktan)
     hareketler = bakiye_hareketleri_getir(kullanici_id)
@@ -29,7 +29,7 @@ def bakiye_yukleme():
     except (TypeError, ValueError):
         return jsonify({"hata": "Geçerli bir tutar giriniz."}), 400
 
-    kullanici_id = session["kullanici_id"]
+    kullanici_id = g.kullanici_id
     sonuc = bakiye_yukle(kullanici_id, tutar_sayi)
     guncel_bakiye = guncel_bakiye_getir(kullanici_id, kaynaktan=True)
     return jsonify(

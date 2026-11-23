@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, session
+from flask import Blueprint, g, jsonify, request
 from veri.degerlendirme_veri import (
     degerlendirme_ekle,
     kullanici_degerlendirmeleri_getir,
@@ -11,7 +11,7 @@ degerlendirme_bp = Blueprint("degerlendirme", __name__, url_prefix="/api")
 @degerlendirme_bp.get("/degerlendirmeler")
 @giris_gerekli
 def degerlendirmeleri_listele():
-    liste = kullanici_degerlendirmeleri_getir(session["kullanici_id"])
+    liste = kullanici_degerlendirmeleri_getir(g.kullanici_id)
     return jsonify({"degerlendirmeler": liste})
 
 
@@ -32,7 +32,7 @@ def degerlendirme_olustur():
         return jsonify({"hata": "Puan tam sayı olmalıdır."}), 400
 
     degerlendirme_id = degerlendirme_ekle(
-        session["kullanici_id"], int(menu_id), puan_sayi, yorum
+        g.kullanici_id, int(menu_id), puan_sayi, yorum
     )
     return (
         jsonify(
