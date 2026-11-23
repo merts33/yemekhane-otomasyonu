@@ -163,6 +163,15 @@
   color: #b25e09;
 }
 
+.rozet-uyari {
+  background: var(--hata);
+  color: #fff;
+}
+
+.satir-uyari {
+  background: var(--hata-zemin);
+}
+
 .tablo {
   width: 100%;
   border-collapse: collapse;

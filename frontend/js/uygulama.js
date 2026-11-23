@@ -57,6 +57,7 @@ function sekmeAc(sekmeAdi) {
   if (sekmeAdi === "rezervasyonlar") rezervasyonlariYukle();
   if (sekmeAdi === "bakiye") bakiyeBilgisiniYukle();
   if (sekmeAdi === "degerlendirme") degerlendirmeleriYukle();
+  if (sekmeAdi === "profil") profiliYukle();
   if (sekmeAdi === "yonetici") yoneticiPaneliYukle();
 }
 
@@ -107,12 +108,13 @@ async function gununMenusunuYukle() {
     const satirlar = menu.yemekler
       .map(
         (y) => `
-      <tr>
+      <tr class="${y.alerjen_uyarisi ? "satir-uyari" : ""}">
         <td>${y.kategori}</td>
         <td>
           <strong>${y.ad}</strong>
           ${y.vejetaryen ? '<span class="rozet rozet-vej">Vejetaryen</span>' : ""}
           ${y.alerjenler ? `<span class="rozet rozet-alerjen">${y.alerjenler}</span>` : ""}
+          ${y.alerjen_uyarisi ? '<span class="rozet rozet-uyari">Alerjen Uyarısı</span>' : ""}
         </td>
         <td>${y.kalori} kcal</td>
       </tr>`
@@ -158,6 +160,16 @@ async function haftalikMenuleriYukle() {
         else if (m.bos_yer <= 0) dugmeYazi = "Kapasite Dolu";
         else if (m.suresi_gecti) dugmeYazi = "Süre Doldu";
 
+        const porsiyonSecim = m.yarim_porsiyon_uygun && !pasif
+          ? `<div class="form-grup" style="margin-bottom:0.5rem;">
+               <label for="porsiyon-${m.menu_id}">Porsiyon</label>
+               <select id="porsiyon-${m.menu_id}">
+                 <option value="tam">Tam (${paraBicimle(m.fiyat)})</option>
+                 <option value="yarim">Yarım (%60 - ${paraBicimle(m.yarim_fiyat)})</option>
+               </select>
+             </div>`
+          : `<p class="soluk">Porsiyon: ${m.rezervasyon_porsiyon === "yarim" ? "Yarım" : "Tam"}</p>`;
+
         return `
         <article class="menu-kart">
           <div>
@@ -168,6 +180,7 @@ async function haftalikMenuleriYukle() {
             <p class="soluk">${m.yemekhane}</p>
             <p class="soluk">Boş yer: ${m.bos_yer} / ${m.kapasite}</p>
             <p class="soluk">Son saat: ${m.rezervasyon_son}</p>
+            ${porsiyonSecim}
           </div>
           <button type="button" class="dugme" ${pasif ? "disabled" : ""} onclick="rezervasyonOlustur(${m.menu_id})">
             ${dugmeYazi}
@@ -182,10 +195,12 @@ async function haftalikMenuleriYukle() {
 
 async function rezervasyonOlustur(menuId) {
   mesajTemizle();
+  const porsiyonSecim = document.getElementById(`porsiyon-${menuId}`);
+  const porsiyon = porsiyonSecim ? porsiyonSecim.value : "tam";
   try {
     const veri = await istekGonder("/api/rezervasyonlar", {
       method: "POST",
-      body: JSON.stringify({ menu_id: menuId }),
+      body: JSON.stringify({ menu_id: menuId, porsiyon }),
     });
     bakiyeGuncelle(veri.bakiye);
     mesajGoster(veri.mesaj, "basari");
@@ -217,6 +232,7 @@ async function rezervasyonlariYukle() {
           <td>${r.tarih}</td>
           <td>${r.yemekhane}</td>
           <td>${r.ogun}</td>
+          <td>${r.porsiyon === "yarim" ? "Yarım" : "Tam"}</td>
           <td>${paraBicimle(r.ucret)}</td>
           <td><span class="rozet ${rozetSinif}">${r.durum}</span></td>
           <td>
@@ -233,7 +249,7 @@ async function rezervasyonlariYukle() {
     kutu.innerHTML = `
       <table class="tablo">
         <thead>
-          <tr><th>Tarih</th><th>Yemekhane</th><th>Öğün</th><th>Ücret</th><th>Durum</th><th>İşlem</th></tr>
+          <tr><th>Tarih</th><th>Yemekhane</th><th>Öğün</th><th>Porsiyon</th><th>Ücret</th><th>Durum</th><th>İşlem</th></tr>
         </thead>
         <tbody>${satirlar}</tbody>
       </table>`;
@@ -389,6 +405,49 @@ async function degerlendirmeGonder(menuId) {
     mesajGoster(hata.message, "hata");
   }
 }
+
+async function profiliYukle() {
+  if (aktifKullanici) {
+    document.getElementById("profil-bilgi").textContent =
+      `${aktifKullanici.ad} ${aktifKullanici.soyad} · ${aktifKullanici.eposta} (${aktifKullanici.rol})`;
+  }
+  const kutu = document.getElementById("profil-alerjen-listesi");
+  try {
+    const [tumVeri, seciliVeri] = await Promise.all([
+      istekGonder("/api/alerjenler"),
+      istekGonder("/api/profil/alerjenler"),
+    ]);
+    const seciliSet = new Set(seciliVeri.alerjen_idler);
+    kutu.innerHTML = tumVeri.alerjenler
+      .map(
+        (a) => `
+      <label class="yemek-secim-oge">
+        <input type="checkbox" name="profil-alerjen" value="${a.id}" ${seciliSet.has(a.id) ? "checked" : ""}>
+        <span>${a.ad}</span>
+      </label>`
+      )
+      .join("");
+  } catch (hata) {
+    mesajGoster(hata.message, "hata");
+  }
+}
+
+document.getElementById("profil-alerjen-formu").addEventListener("submit", async (olay) => {
+  olay.preventDefault();
+  mesajTemizle();
+  const alerjenIdler = Array.from(
+    document.querySelectorAll('input[name="profil-alerjen"]:checked')
+  ).map((k) => Number(k.value));
+  try {
+    const veri = await istekGonder("/api/profil/alerjenler", {
+      method: "PUT",
+      body: JSON.stringify({ alerjen_idler: alerjenIdler }),
+    });
+    mesajGoster(veri.mesaj, "basari");
+  } catch (hata) {
+    mesajGoster(hata.message, "hata");
+  }
+});
 
 async function yoneticiPaneliYukle() {
   const yemekListesiKutu = document.getElementById("yonetici-yemek-listesi");

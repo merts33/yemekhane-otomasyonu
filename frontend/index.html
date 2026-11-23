@@ -47,6 +47,7 @@
         <button type="button" class="sekme-dugme" data-sekme="rezervasyonlar">Rezervasyonlarım</button>
         <button type="button" class="sekme-dugme" data-sekme="bakiye">Bakiye</button>
         <button type="button" class="sekme-dugme" data-sekme="degerlendirme">Değerlendirme</button>
+        <button type="button" class="sekme-dugme" data-sekme="profil">Profil</button>
         <button type="button" id="yonetici-sekme-dugme" class="sekme-dugme gizli" data-sekme="yonetici">Yönetici Paneli</button>
       </nav>
 
@@ -120,6 +121,20 @@
         <div class="kart">
           <h3>Geçmiş Değerlendirmelerim</h3>
           <div id="gecmis-degerlendirmeler" class="tablo-kaydir"></div>
+        </div>
+      </div>
+
+      <div id="sekme-profil" class="sekme-icerik gizli">
+        <div class="kart">
+          <h2>Profil ve Alerjen Tercihleri</h2>
+          <p id="profil-bilgi" class="soluk"></p>
+          <form id="profil-alerjen-formu">
+            <div class="form-grup">
+              <label>Alerjenlerim (Seçili alerjenler menüde uyarıyla gösterilir)</label>
+              <div id="profil-alerjen-listesi" class="yemek-secim-listesi"></div>
+            </div>
+            <button type="submit" class="dugme">Alerjenleri Kaydet</button>
+          </form>
         </div>
       </div>
 

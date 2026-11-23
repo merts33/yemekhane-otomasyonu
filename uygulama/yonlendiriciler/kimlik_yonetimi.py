@@ -1,6 +1,12 @@
 import bcrypt
 from flask import Blueprint, g, jsonify, make_response, request
-from veri.kullanici_veri import eposta_ile_kullanici_bul, id_ile_kullanici_bul
+from veri.kullanici_veri import (
+    alerjenleri_listele,
+    eposta_ile_kullanici_bul,
+    id_ile_kullanici_bul,
+    kullanici_alerjen_idleri_getir,
+    kullanici_alerjenlerini_guncelle,
+)
 from veri.onbellek import oturum_olustur, oturum_sil
 from yonlendiriciler.ortak import giris_gerekli
 
@@ -79,3 +85,27 @@ def ben():
             }
         }
     )
+
+
+@kimlik_bp.get("/alerjenler")
+@giris_gerekli
+def alerjenler():
+    return jsonify({"alerjenler": alerjenleri_listele()})
+
+
+@kimlik_bp.get("/profil/alerjenler")
+@giris_gerekli
+def profil_alerjenleri():
+    kaynaktan = request.args.get("kaynaktan") == "1"
+    idler = kullanici_alerjen_idleri_getir(g.kullanici_id, kaynaktan=kaynaktan)
+    return jsonify({"alerjen_idler": idler})
+
+
+@kimlik_bp.put("/profil/alerjenler")
+@giris_gerekli
+def profil_alerjenlerini_guncelle():
+    veri = request.get_json(silent=True) or {}
+    alerjen_idler = [int(x) for x in (veri.get("alerjen_idler") or [])]
+    kullanici_alerjenlerini_guncelle(g.kullanici_id, alerjen_idler)
+    guncel = kullanici_alerjen_idleri_getir(g.kullanici_id, kaynaktan=True)
+    return jsonify({"mesaj": "Alerjen tercihleriniz kaydedildi.", "alerjen_idler": guncel})

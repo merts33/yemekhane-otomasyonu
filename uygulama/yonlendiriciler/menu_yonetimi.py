@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 from flask import Blueprint, g, jsonify, request
+from veri.kullanici_veri import kullanici_alerjen_idleri_getir
 from veri.menu_veri import (
     gunun_menusu_getir,
     haftalik_menuler_getir,
@@ -37,6 +38,17 @@ def gunun_menusu():
     ogun_id = request.args.get("ogun_id", default=2, type=int)
     tarih = request.args.get("tarih") or date.today().isoformat()
     menu = gunun_menusu_getir(yemekhane_id, ogun_id, tarih)
+    if menu:
+        kullanici_alerjenleri = set(kullanici_alerjen_idleri_getir(g.kullanici_id))
+        menu = dict(menu)
+        yemekler = []
+        for y in menu["yemekler"]:
+            y_kopya = dict(y)
+            y_kopya["alerjen_uyarisi"] = bool(
+                set(y_kopya.get("alerjen_id_listesi", [])) & kullanici_alerjenleri
+            )
+            yemekler.append(y_kopya)
+        menu["yemekler"] = yemekler
     return jsonify({"menu": menu})
 
 

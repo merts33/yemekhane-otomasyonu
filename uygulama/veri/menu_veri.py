@@ -94,6 +94,11 @@ def gunun_menusu_getir(yemekhane_id, ogun_id, tarih):
             toplam_kalori = 0
             for s in satirlar:
                 toplam_kalori += int(s["kalori"])
+                alerjen_id_listesi = (
+                    [int(x) for x in s["alerjen_idler"].split(",") if x]
+                    if s["alerjen_idler"]
+                    else []
+                )
                 yemekler.append(
                     {
                         "yemek_id": s["yemek_id"],
@@ -102,6 +107,7 @@ def gunun_menusu_getir(yemekhane_id, ogun_id, tarih):
                         "kalori": int(s["kalori"]),
                         "vejetaryen": bool(s["vejetaryen"]),
                         "alerjenler": s["alerjenler"] or "",
+                        "alerjen_id_listesi": alerjen_id_listesi,
                     }
                 )
 
@@ -147,7 +153,7 @@ def haftalik_menuler_getir(yemekhane_id, baslangic, bitis, kullanici_id, rol):
                 "DATE_FORMAT(d.rezervasyon_son, '%%Y-%%m-%%d %%H:%%i') AS rezervasyon_son, "
                 "IF(NOW() >= d.rezervasyon_son, 1, 0) AS suresi_gecti, "
                 "p.oy_sayisi, p.ortalama_puan, "
-                "r.id AS rezervasyon_id, r.durum AS rezervasyon_durumu "
+                "r.id AS rezervasyon_id, r.durum AS rezervasyon_durumu, r.porsiyon AS rezervasyon_porsiyon "
                 "FROM menuler m "
                 "JOIN yemekhaneler yh ON yh.id = m.yemekhane_id "
                 "JOIN ogunler o ON o.id = m.ogun_id "
@@ -171,6 +177,8 @@ def haftalik_menuler_getir(yemekhane_id, baslangic, bitis, kullanici_id, rol):
                         "ogun_id": s["ogun_id"],
                         "ogun": s["ogun"],
                         "fiyat": float(fiyat),
+                        "yarim_fiyat": round(float(fiyat) * 0.60, 2),
+                        "yarim_porsiyon_uygun": s["ogun_id"] != 1,
                         "kapasite": int(s["kapasite"]),
                         "rezerve": int(s["rezerve"]),
                         "bos_yer": int(s["bos_yer"]),
@@ -184,6 +192,7 @@ def haftalik_menuler_getir(yemekhane_id, baslangic, bitis, kullanici_id, rol):
                         ),
                         "rezervasyon_id": s["rezervasyon_id"],
                         "rezervasyon_durumu": s["rezervasyon_durumu"],
+                        "rezervasyon_porsiyon": s["rezervasyon_porsiyon"],
                     }
                 )
             return sonuclar

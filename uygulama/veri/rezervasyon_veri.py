@@ -1,8 +1,8 @@
 from veri.veritabani import okuma_baglantisi, yordam_cagir
 
 
-def rezervasyon_yap(kullanici_id, menu_id):
-    return yordam_cagir("sp_rezervasyon_yap", (kullanici_id, menu_id))
+def rezervasyon_yap(kullanici_id, menu_id, porsiyon="tam"):
+    return yordam_cagir("sp_rezervasyon_yap", (kullanici_id, menu_id, porsiyon))
 
 
 def rezervasyon_iptal(kullanici_id, rezervasyon_id):
@@ -14,7 +14,7 @@ def kullanici_rezervasyonlari_getir(kullanici_id):
     try:
         with baglanti.cursor() as imlec:
             imlec.execute(
-                "SELECT r.id AS rezervasyon_id, r.menu_id, r.durum, r.ucret, "
+                "SELECT r.id AS rezervasyon_id, r.menu_id, r.durum, r.porsiyon, r.ucret, "
                 "DATE_FORMAT(m.tarih, '%%Y-%%m-%%d') AS tarih, "
                 "yh.ad AS yemekhane, o.ad AS ogun, "
                 "DATE_FORMAT(TIMESTAMP(m.tarih, o.son_saat), '%%Y-%%m-%%d %%H:%%i') AS rezervasyon_son, "
@@ -38,6 +38,7 @@ def kullanici_rezervasyonlari_getir(kullanici_id):
                         "rezervasyon_id": s["rezervasyon_id"],
                         "menu_id": s["menu_id"],
                         "durum": s["durum"],
+                        "porsiyon": s["porsiyon"],
                         "ucret": float(s["ucret"]),
                         "tarih": s["tarih"],
                         "yemekhane": s["yemekhane"],

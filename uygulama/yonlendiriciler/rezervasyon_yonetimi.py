@@ -22,17 +22,19 @@ def rezervasyonlari_listele():
 def rezervasyon_olustur():
     veri = request.get_json(silent=True) or {}
     menu_id = veri.get("menu_id")
+    porsiyon = veri.get("porsiyon") or "tam"
     if not menu_id:
         return jsonify({"hata": "Menü seçimi zorunludur."}), 400
 
     kullanici_id = g.kullanici_id
-    sonuc = rezervasyon_yap(kullanici_id, int(menu_id))
+    sonuc = rezervasyon_yap(kullanici_id, int(menu_id), porsiyon)
     guncel_bakiye = guncel_bakiye_getir(kullanici_id, kaynaktan=True)
     return (
         jsonify(
             {
                 "mesaj": "Rezervasyon oluşturuldu.",
                 "rezervasyon_id": sonuc["rezervasyon_id"],
+                "porsiyon": sonuc["porsiyon"],
                 "ucret": float(sonuc["ucret"]),
                 "bakiye": guncel_bakiye,
             }
